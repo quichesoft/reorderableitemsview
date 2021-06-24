@@ -39,6 +39,7 @@ class ReorderableItemsView extends StatefulWidget {
     this.mainAxisSpacing = 0.0,
     this.crossAxisSpacing = 0.0,
     this.feedBackWidgetBuilder,
+    this.allowReordering = true,
   })  : assert(scrollDirection != null),
         assert(onReorder != null),
         assert(children != null),
@@ -112,6 +113,9 @@ class ReorderableItemsView extends StatefulWidget {
   /// Used when we are building a GridView
   final double crossAxisSpacing;
 
+  /// Defaults to true.
+  final bool allowReordering;
+
   final IndexedFeedBackWidgetBuilder feedBackWidgetBuilder;
 
   @override
@@ -156,6 +160,7 @@ class _ReorderableItemsViewState extends State<ReorderableItemsView> {
           mainAxisSpacing: widget.mainAxisSpacing,
           crossAxisSpacing: widget.crossAxisSpacing,
           feedBackWidgetBuilder: widget.feedBackWidgetBuilder,
+          allowReordering: widget.allowReordering,
         );
       },
     );
@@ -187,6 +192,7 @@ class _ReorderableListContent extends StatefulWidget {
     @required this.mainAxisSpacing,
     @required this.crossAxisSpacing,
     @required this.feedBackWidgetBuilder,
+    @required this.allowReordering,
   });
 
   final Widget header;
@@ -203,6 +209,7 @@ class _ReorderableListContent extends StatefulWidget {
   final double mainAxisSpacing;
   final double crossAxisSpacing;
   final IndexedFeedBackWidgetBuilder feedBackWidgetBuilder;
+  final bool allowReordering;
 
   @override
   _ReorderableListContentState createState() => _ReorderableListContentState();
@@ -261,6 +268,9 @@ class _ReorderableListContentState extends State<_ReorderableListContent>
   // Whether or not we are currently scrolling this view to show a widget.
   bool _scrolling = false;
 
+  // Whether or not we should allow reordering
+  bool _allowReordering = true;
+
   double get _dropAreaExtent {
     if (_draggingFeedbackSize == null) {
       return _defaultDropAreaExtent;
@@ -286,6 +296,7 @@ class _ReorderableListContentState extends State<_ReorderableListContent>
     _ghostController =
         AnimationController(vsync: this, duration: _reorderAnimationDuration);
     _entranceController.addStatusListener(_onEntranceStatusChanged);
+    this._allowReordering = widget.allowReordering;
   }
 
   @override
@@ -294,6 +305,16 @@ class _ReorderableListContentState extends State<_ReorderableListContent>
         PrimaryScrollController.of(context) ??
         ScrollController();
     super.didChangeDependencies();
+  }
+
+  @override
+  void didUpdateWidget(covariant _ReorderableListContent oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.allowReordering != widget.allowReordering) {
+      setState(() {
+        this._allowReordering = widget.allowReordering;
+      });
+    }
   }
 
   @override
@@ -533,7 +554,7 @@ class _ReorderableListContentState extends State<_ReorderableListContent>
       // constrain the size of the feedback dragging widget.
       Widget child = widget.longPressToDrag
           ? LongPressDraggable<Key>(
-              maxSimultaneousDrags: 1,
+              maxSimultaneousDrags: _allowReordering ? 1 : 0,
               axis: null,
               data: toWrap.key,
               ignoringFeedbackSemantics: false,
@@ -566,7 +587,7 @@ class _ReorderableListContentState extends State<_ReorderableListContent>
               },
             )
           : Draggable<Key>(
-              maxSimultaneousDrags: 1,
+              maxSimultaneousDrags: _allowReordering ? 1 : 0,
               axis: null,
               data: toWrap.key,
               ignoringFeedbackSemantics: false,
